@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Website Uptime Monitor</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128065;</text></svg>" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#/">
+        <span class="brand-dot" aria-hidden="true"></span>
+        <span>Uptime Monitor</span>
+      </a>
+      <div class="topbar-actions">
+        <span id="last-refresh" class="muted small"></span>
+        <button id="btn-refresh" class="btn btn-ghost" title="Refresh">Refresh</button>
+        <button id="btn-add" class="btn btn-primary">+ Add Website</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="view" class="container" aria-live="polite"></main>
+
+  <footer class="footer muted small">
+    Website Uptime Monitor — checks every <span id="interval-label">5 minutes</span> ·
+    <a href="/api/health" target="_blank" rel="noreferrer">API health</a>
+  </footer>
+
+  <!-- Add modal -->
+  <dialog id="modal-add" class="modal">
+    <form id="form-add" method="dialog">
+      <h2>Add Websites</h2>
+      <label for="add-name">Name <span class="muted">(optional — auto-generated per URL)</span></label>
+      <input id="add-name" type="text" placeholder="Production Website" autocomplete="off" />
+
+      <label for="add-urls">URLs <span class="muted">(one per line — paste multiple URLs at once)</span></label>
+      <textarea id="add-urls" rows="6" spellcheck="false"
+        placeholder="https://example.com&#10;https://api.example.com/health&#10;https://portal.example.com"></textarea>
+
+      <label class="checkbox">
+        <input id="add-enabled" type="checkbox" checked />
+        <span>Enabled (monitor every 5 minutes)</span>
+      </label>
+
+      <div id="add-result" class="form-result" hidden></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Websites</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Edit modal -->
+  <dialog id="modal-edit" class="modal">
+    <form id="form-edit" method="dialog">
+      <h2>Edit Website</h2>
+      <input id="edit-id" type="hidden" />
+      <label for="edit-name">Name</label>
+      <input id="edit-name" type="text" required placeholder="Production Website" autocomplete="off" />
+      <label for="edit-url">URL</label>
+      <input id="edit-url" type="text" required placeholder="https://example.com" autocomplete="off" />
+      <label class="checkbox">
+        <input id="edit-enabled" type="checkbox" />
+        <span>Enabled (monitor every 5 minutes)</span>
+      </label>
+      <div id="edit-error" class="form-error" hidden></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Delete confirmation -->
+  <dialog id="modal-confirm" class="modal modal-sm">
+    <div class="confirm-body">
+      <h2>Delete website?</h2>
+      <p id="confirm-text" class="muted"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+        <button type="button" id="btn-confirm-delete" class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

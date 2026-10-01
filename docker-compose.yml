@@ -1,0 +1,37 @@
+services:
+  api:
+    build: .
+    container_name: uptime-monitor-api
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DATABASE_PATH=/app/database/uptime.db
+      - CHECK_INTERVAL_MS=${CHECK_INTERVAL_MS:-300000}
+      - REQUEST_TIMEOUT_MS=${REQUEST_TIMEOUT_MS:-10000}
+      - TEAMS_WEBHOOK_URL=${TEAMS_WEBHOOK_URL:-}
+      - ALLOW_PRIVATE_IPS=${ALLOW_PRIVATE_IPS:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - uptime-data:/app/database
+    restart: unless-stopped
+
+  worker:
+    build: .
+    container_name: uptime-monitor-worker
+    command: node worker/index.js
+    environment:
+      - DATABASE_PATH=/app/database/uptime.db
+      - CHECK_INTERVAL_MS=${CHECK_INTERVAL_MS:-300000}
+      - REQUEST_TIMEOUT_MS=${REQUEST_TIMEOUT_MS:-10000}
+      - TEAMS_WEBHOOK_URL=${TEAMS_WEBHOOK_URL:-}
+      - ALLOW_PRIVATE_IPS=${ALLOW_PRIVATE_IPS:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - uptime-data:/app/database
+    restart: unless-stopped
+    depends_on:
+      - api
+
+volumes:
+  uptime-data:
