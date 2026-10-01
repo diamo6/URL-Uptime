@@ -58,7 +58,7 @@ export const config = {
   requestTimeoutMs: int('REQUEST_TIMEOUT_MS', 10 * 1000), // 10 seconds
   maxRedirects: int('MAX_REDIRECTS', 5),
   teamsWebhookUrl: str('TEAMS_WEBHOOK_URL', ''),
-  allowPrivateIps: bool('ALLOW_PRIVATE_IPS', false),
+  allowPrivateIps: bool('ALLOW_PRIVATE_IPS', true),
   seedExamples: bool('SEED_EXAMPLES', false),
   logLevel: str('LOG_LEVEL', 'info'),
 };
