@@ -12,7 +12,8 @@
 import { config } from './config.js';
 import { assertSafeUrl } from './urlUtils.js';
 
-const USER_AGENT = 'WebsiteUptimeMonitor/1.0 (+https://localhost)';
+const DEFAULT_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 export function classifyStatus(httpStatus) {
   if (httpStatus >= 200 && httpStatus <= 399) return 'UP';
@@ -44,6 +45,7 @@ export async function checkUrl(url, options = {}) {
   const timeoutMs = options.timeoutMs ?? config.requestTimeoutMs;
   const maxRedirects = options.maxRedirects ?? config.maxRedirects;
   const allowPrivate = options.allowPrivate ?? config.allowPrivateIps;
+  const userAgent = options.userAgent ?? config.userAgent ?? DEFAULT_USER_AGENT;
   const started = Date.now();
 
   const safety = await assertSafeUrl(url, { allowPrivate });
@@ -83,9 +85,18 @@ export async function checkUrl(url, options = {}) {
         redirect: 'manual',
         signal: AbortSignal.timeout(timeoutMs),
         headers: {
-          'user-agent': USER_AGENT,
-          accept: 'text/html,application/json,*/*;q=0.8',
-          'accept-encoding': 'identity',
+          'user-agent': userAgent,
+          'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'accept-language': 'th-TH,th;q=0.9,en-US;q=0.8,en;q=0.7',
+          'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+          'sec-ch-ua-mobile': '?0',
+          'sec-ch-ua-platform': '"Windows"',
+          'sec-fetch-dest': 'document',
+          'sec-fetch-mode': 'navigate',
+          'sec-fetch-site': 'none',
+          'sec-fetch-user': '?1',
+          'upgrade-insecure-requests': '1',
+          'cache-control': 'no-cache',
         },
       });
     } catch (err) {

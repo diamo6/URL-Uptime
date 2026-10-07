@@ -58,9 +58,18 @@ export const config = {
   requestTimeoutMs: int('REQUEST_TIMEOUT_MS', 10 * 1000), // 10 seconds
   maxRedirects: int('MAX_REDIRECTS', 5),
   teamsWebhookUrl: str('TEAMS_WEBHOOK_URL', ''),
+  userAgent: str(
+    'USER_AGENT',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+  ),
   allowPrivateIps: bool('ALLOW_PRIVATE_IPS', true),
+  ignoreSslErrors: bool('IGNORE_SSL_ERRORS', true),
   seedExamples: bool('SEED_EXAMPLES', false),
   logLevel: str('LOG_LEVEL', 'info'),
 };
+
+if (config.ignoreSslErrors) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
 
 export default config;

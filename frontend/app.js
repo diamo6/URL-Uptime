@@ -1,5 +1,5 @@
 /**
- * Website Uptime Monitor — frontend SPA (vanilla JS, no build step).
+ * Website Uptime Monitor — 21st.dev Inspired SPA Frontend.
  * Routes:  #/            dashboard
  *          #/w/:id       website detail
  */
@@ -7,6 +7,7 @@
 /* ---------------- utilities ---------------- */
 
 const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
@@ -46,13 +47,13 @@ function timeAgo(iso) {
   if (!iso) return 'never';
   const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
   if (sec < 5) return 'just now';
-  if (sec < 60) return `${sec} sec ago`;
+  if (sec < 60) return `${sec}s ago`;
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min} min ago`;
+  if (min < 60) return `${min}m ago`;
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr} hour${hr > 1 ? 's' : ''} ago`;
+  if (hr < 24) return `${hr}h ago`;
   const day = Math.floor(hr / 24);
-  return `${day} day${day > 1 ? 's' : ''} ago`;
+  return `${day}d ago`;
 }
 
 function fmtDateTime(iso) {
@@ -89,8 +90,6 @@ function httpBadge(site) {
 
 const SEVERITY = { DOWN: 0, WARNING: 1, UNKNOWN: 2, UP: 3 };
 
-// Sortable columns: default direction chosen for operational reading
-// (status → DOWN first, response → slowest first, uptime → worst first, last → stalest first).
 const DEFAULT_DIR = { status: 'asc', name: 'asc', http: 'asc', response: 'desc', uptime: 'asc', last: 'asc' };
 const SORTERS = {
   status: (a, b) => (SEVERITY[a.status] ?? 9) - (SEVERITY[b.status] ?? 9) || a.name.localeCompare(b.name),
@@ -100,6 +99,27 @@ const SORTERS = {
   uptime: (a, b) => (a.uptime_24h ?? -1) - (b.uptime_24h ?? -1),
   last: (a, b) => String(a.last_checked_at ?? '').localeCompare(String(b.last_checked_at ?? '')),
 };
+
+function filterWebsites(list) {
+  let result = [...list];
+  
+  // Search text filter
+  if (state.searchQuery) {
+    const q = state.searchQuery.toLowerCase();
+    result = result.filter((w) => w.name.toLowerCase().includes(q) || w.url.toLowerCase().includes(q));
+  }
+  
+  // Status filter pill
+  if (state.statusFilter !== 'ALL') {
+    if (state.statusFilter === 'DISABLED') {
+      result = result.filter((w) => !w.enabled);
+    } else {
+      result = result.filter((w) => w.enabled && w.status === state.statusFilter);
+    }
+  }
+  
+  return result;
+}
 
 function sortWebsites(list) {
   const { key, dir } = state.sort;
@@ -128,6 +148,26 @@ function toast(message, isError = false) {
   toastTimer = setTimeout(() => { el.hidden = true; }, isError ? 5000 : 3000);
 }
 
+/* ---------------- theme management ---------------- */
+
+function initTheme() {
+  const saved = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = saved || (prefersDark ? 'dark' : 'light');
+  setTheme(theme);
+}
+
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('theme', t);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  setTheme(next);
+}
+
 /* ---------------- state ---------------- */
 
 const state = {
@@ -136,8 +176,10 @@ const state = {
   incidents: [],
   refreshTimer: null,
   window: '24h',
-  currentSite: null, // website currently shown on the detail page
-  sort: { key: 'status', dir: 'asc' }, // table sort (default: DOWN first)
+  currentSite: null,
+  searchQuery: '',
+  statusFilter: 'ALL',
+  sort: { key: 'status', dir: 'asc' },
 };
 
 async function loadOverview() {
@@ -164,12 +206,23 @@ async function loadOverview() {
 function summaryHtml() {
   const s = state.summary;
   return `
-    <section class="summary" aria-label="Summary">
-      <div class="stat"><div class="stat-label">Total</div><div class="stat-value">${s.total}</div></div>
-      <div class="stat is-up"><div class="stat-label">${statusPill('UP')}</div><div class="stat-value">${s.up}</div></div>
-      <div class="stat is-warning"><div class="stat-label">${statusPill('WARNING')}</div><div class="stat-value">${s.warning}</div></div>
-      <div class="stat is-down"><div class="stat-label">${statusPill('DOWN')}</div><div class="stat-value">${s.down}</div></div>
-      <div class="stat is-unknown"><div class="stat-label">${statusPill('UNKNOWN')}</div><div class="stat-value">${s.unknown}</div></div>
+    <section class="summary" aria-label="Summary KPI Stats">
+      <div class="stat is-total">
+        <div class="stat-label">Total Websites</div>
+        <div class="stat-value">${s.total}</div>
+      </div>
+      <div class="stat is-up">
+        <div class="stat-label">Operational <span>${statusPill('UP')}</span></div>
+        <div class="stat-value">${s.up}</div>
+      </div>
+      <div class="stat is-warning">
+        <div class="stat-label">Issues <span>${statusPill('WARNING')}</span></div>
+        <div class="stat-value">${s.warning}</div>
+      </div>
+      <div class="stat is-down">
+        <div class="stat-label">Outages <span>${statusPill('DOWN')}</span></div>
+        <div class="stat-value">${s.down}</div>
+      </div>
     </section>`;
 }
 
@@ -187,8 +240,8 @@ function websiteRow(site) {
       </td>
       <td>${statusPill(site.status)}</td>
       <td>${httpBadge(site)}</td>
-      <td class="nowrap">${fmtResponse(site.response_time_ms)}</td>
-      <td class="nowrap">${fmtUptime(site.uptime_24h)}</td>
+      <td class="nowrap mono">${fmtResponse(site.response_time_ms)}</td>
+      <td class="nowrap mono">${fmtUptime(site.uptime_24h)}</td>
       <td class="nowrap small muted">${checkLabel}</td>
       <td>
         <div class="actions">
@@ -202,39 +255,70 @@ function websiteRow(site) {
     </tr>`;
 }
 
+function filterBarHtml() {
+  const pill = (key, label, count) => `
+    <button class="filter-pill ${state.statusFilter === key ? 'active' : ''}" data-filter="${key}">
+      ${label} (${count})
+    </button>`;
+
+  const s = state.summary;
+  const disabledCount = state.websites.filter((w) => !w.enabled).length;
+
+  return `
+    <div class="filter-bar">
+      <div class="search-input-wrap">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="search-input" type="text" class="search-input" placeholder="Search by name or URL..." value="${esc(state.searchQuery)}" autocomplete="off" />
+      </div>
+      <div class="filter-pills">
+        ${pill('ALL', 'All', s.total)}
+        ${pill('UP', 'UP', s.up)}
+        ${pill('WARNING', 'Warning', s.warning)}
+        ${pill('DOWN', 'Down', s.down)}
+        ${pill('DISABLED', 'Disabled', disabledCount)}
+      </div>
+    </div>`;
+}
+
 function websitesPanelHtml() {
   if (state.websites.length === 0) {
     return `
       <div class="panel">
         <div class="empty">
-          <p><strong>No websites yet.</strong></p>
-          <p>Paste one or many URLs to start monitoring — e.g. copy 3 URLs and paste them all at once.</p>
+          <strong>No websites registered yet.</strong>
+          <p>Paste one or multiple URLs to start monitoring your infrastructure in real-time.</p>
           <button class="btn btn-primary" id="btn-add-empty">+ Add Website</button>
         </div>
       </div>`;
   }
-  const rows = sortWebsites(state.websites).map(websiteRow).join('');
+
+  const filtered = filterWebsites(state.websites);
+  const rows = sortWebsites(filtered).map(websiteRow).join('');
+
   return `
     <div class="panel">
       <div class="panel-head">
-        <h2>Websites (${state.websites.length})</h2>
-        <span class="muted small">click a column header to sort</span>
+        <h2>Monitored Websites (${filtered.length}/${state.websites.length})</h2>
+        <span class="muted small">click column header to sort</span>
       </div>
+      ${filterBarHtml()}
       <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              ${sortTh('name', 'Website')}
-              ${sortTh('status', 'Status')}
-              ${sortTh('http', 'HTTP')}
-              ${sortTh('response', 'Response')}
-              ${sortTh('uptime', 'Uptime 24h')}
-              ${sortTh('last', 'Last Check')}
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
+        ${filtered.length === 0
+          ? '<div class="empty"><p>No websites match your filter criteria.</p></div>'
+          : `<table>
+              <thead>
+                <tr>
+                  ${sortTh('name', 'Website')}
+                  ${sortTh('status', 'Status')}
+                  ${sortTh('http', 'HTTP')}
+                  ${sortTh('response', 'Response')}
+                  ${sortTh('uptime', 'Uptime 24h')}
+                  ${sortTh('last', 'Last Check')}
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>`}
       </div>
     </div>`;
 }
@@ -242,21 +326,21 @@ function websitesPanelHtml() {
 function incidentsPanelHtml() {
   const items = state.incidents;
   const body = items.length === 0
-    ? '<div class="empty"><p><strong>No incidents.</strong> Nothing has gone wrong yet.</p></div>'
+    ? '<div class="empty"><p><strong>All Systems Operational.</strong> No incidents recorded.</p></div>'
     : `<div class="table-wrap"><table>
         <thead><tr><th>Website</th><th>Status</th><th>Started</th><th>Duration</th><th>Detail</th></tr></thead>
         <tbody>${items.map((inc) => `
           <tr>
-            <td><a href="#/w/${inc.website_id}">${esc(inc.website?.name ?? '#' + inc.website_id)}</a></td>
+            <td><a href="#/w/${inc.website_id}" class="site-name">${esc(inc.website?.name ?? '#' + inc.website_id)}</a></td>
             <td>${statusPill(inc.status)}</td>
-            <td class="nowrap small">${fmtDateTime(inc.started_at)}</td>
-            <td class="nowrap small">${inc.resolved ? fmtDuration(inc.downtime_seconds) : '<span class="badge badge-down">ONGOING</span>'}</td>
+            <td class="nowrap small mono">${fmtDateTime(inc.started_at)}</td>
+            <td class="nowrap small mono">${inc.resolved ? fmtDuration(inc.downtime_seconds) : '<span class="badge badge-down">ONGOING</span>'}</td>
             <td class="small muted">${esc(inc.message ?? '')}</td>
           </tr>`).join('')}
         </tbody></table></div>`;
   return `
     <div class="panel">
-      <div class="panel-head"><h2>Incident History</h2><span class="muted small">latest ${items.length}</span></div>
+      <div class="panel-head"><h2>Incident History</h2><span class="muted small">Latest ${items.length} incidents</span></div>
       ${body}
     </div>`;
 }
@@ -265,7 +349,22 @@ async function renderDashboard() {
   const view = $('#view');
   state.currentSite = null;
   view.innerHTML = summaryHtml() + websitesPanelHtml() + incidentsPanelHtml();
-  $('#last-refresh').textContent = `updated ${new Date().toLocaleTimeString()}`;
+  $('.refresh-text').textContent = `updated ${new Date().toLocaleTimeString()}`;
+  
+  // Re-bind search input listener
+  const searchEl = $('#search-input');
+  if (searchEl) {
+    searchEl.addEventListener('input', (e) => {
+      state.searchQuery = e.target.value;
+      renderDashboard();
+      // Keep focus and cursor position in input after re-render
+      const newSearch = $('#search-input');
+      if (newSearch) {
+        newSearch.focus();
+        newSearch.setSelectionRange(state.searchQuery.length, state.searchQuery.length);
+      }
+    });
+  }
 }
 
 /* ---------------- detail view ---------------- */
@@ -275,13 +374,12 @@ function chartSvg(series) {
   const H = 170;
   const points = series.filter((p) => p.ms !== null && p.ms !== undefined);
   if (points.length < 2) {
-    return `<div class="empty"><p>Not enough data for a chart yet — checks run every 5 minutes.</p></div>`;
+    return `<div class="empty"><p>Not enough metrics recorded for chart view yet (auto-checks run every 5 minutes).</p></div>`;
   }
   const max = Math.max(...points.map((p) => p.ms), 100);
   const x = (i) => (i / (series.length - 1)) * (W - 40) + 30;
   const y = (ms) => H - 24 - (ms / max) * (H - 44);
 
-  // Build polylines, breaking at gaps (null response / DOWN without time).
   const segments = [];
   let current = [];
   series.forEach((p, i) => {
@@ -295,11 +393,11 @@ function chartSvg(series) {
   if (current.length > 1) segments.push(current);
 
   const downMarks = series
-    .map((p, i) => (p.status === 'DOWN' ? `<circle cx="${x(i).toFixed(1)}" cy="${H - 24}" r="3" fill="var(--down)"/>` : ''))
+    .map((p, i) => (p.status === 'DOWN' ? `<circle cx="${x(i).toFixed(1)}" cy="${H - 24}" r="3.5" fill="var(--down)"/>` : ''))
     .join('');
 
   const lines = segments
-    .map((pts) => `<polyline points="${pts.join(' ')}" fill="none" stroke="var(--primary)" stroke-width="1.8" stroke-linejoin="round"/>`)
+    .map((pts) => `<polyline points="${pts.join(' ')}" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`)
     .join('');
 
   const start = new Date(series[0].t);
@@ -310,12 +408,12 @@ function chartSvg(series) {
     <svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Response time chart">
       <line x1="30" y1="${H - 24}" x2="${W - 10}" y2="${H - 24}" stroke="var(--border)"/>
       <line x1="30" y1="12" x2="30" y2="${H - 24}" stroke="var(--border)"/>
-      <text x="26" y="16" text-anchor="end" font-size="10" fill="var(--muted)">${max >= 1000 ? (max / 1000).toFixed(1) + 's' : max + 'ms'}</text>
-      <text x="26" y="${H - 24}" text-anchor="end" font-size="10" fill="var(--muted)">0</text>
+      <text x="26" y="16" text-anchor="end" font-size="10" fill="var(--muted)" font-family="var(--font-mono)">${max >= 1000 ? (max / 1000).toFixed(1) + 's' : max + 'ms'}</text>
+      <text x="26" y="${H - 24}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="var(--font-mono)">0</text>
       ${lines}
       ${downMarks}
     </svg>
-    <div class="chart-legend"><span>${label(start)}</span><span>response time · red = DOWN</span><span>${label(end)}</span></div>`;
+    <div class="chart-legend"><span>${label(start)}</span><span>response time series (red = DOWN)</span><span>${label(end)}</span></div>`;
 }
 
 async function renderDetail(id) {
@@ -331,10 +429,10 @@ async function renderDetail(id) {
 
     const checkRows = data.recentChecks.map((c) => `
       <tr>
-        <td class="nowrap small">${fmtDateTime(c.checked_at)}</td>
+        <td class="nowrap small mono">${fmtDateTime(c.checked_at)}</td>
         <td>${statusPill(c.status)}</td>
         <td>${c.http_status ? `<span class="badge ${c.http_status < 400 ? 'badge-ok' : c.http_status < 500 ? 'badge-warn' : 'badge-down'}">${c.http_status}</span>` : `<span class="badge badge-down">${/timed out/i.test(c.error_message || '') ? 'TIMEOUT' : 'ERR'}</span>`}</td>
-        <td class="nowrap">${fmtResponse(c.response_time_ms)}</td>
+        <td class="nowrap mono">${fmtResponse(c.response_time_ms)}</td>
         <td class="small muted">${esc(c.error_message || '—')}</td>
         <td class="small muted">${esc(c.checked_by)}</td>
       </tr>`).join('');
@@ -342,9 +440,9 @@ async function renderDetail(id) {
     const incidentRows = data.incidents.map((inc) => `
       <tr>
         <td>${statusPill(inc.status)}</td>
-        <td class="nowrap small">${fmtDateTime(inc.started_at)}</td>
-        <td class="nowrap small">${inc.resolved ? fmtDateTime(inc.ended_at) : '<span class="badge badge-down">ONGOING</span>'}</td>
-        <td class="nowrap small">${inc.resolved ? fmtDuration(inc.downtime_seconds) : '—'}</td>
+        <td class="nowrap small mono">${fmtDateTime(inc.started_at)}</td>
+        <td class="nowrap small mono">${inc.resolved ? fmtDateTime(inc.ended_at) : '<span class="badge badge-down">ONGOING</span>'}</td>
+        <td class="nowrap small mono">${inc.resolved ? fmtDuration(inc.downtime_seconds) : '—'}</td>
         <td class="small muted">${esc(inc.message)}</td>
       </tr>`).join('');
 
@@ -366,31 +464,31 @@ async function renderDetail(id) {
 
       <section class="kpis">
         <div class="stat"><div class="stat-label">Status</div><div class="stat-value">${statusPill(site.status)}</div></div>
-        <div class="stat"><div class="stat-label">HTTP Status</div><div class="stat-value">${site.http_status ?? '—'}</div></div>
-        <div class="stat"><div class="stat-label">Response Time</div><div class="stat-value">${fmtResponse(site.response_time_ms)}</div></div>
+        <div class="stat"><div class="stat-label">HTTP Status</div><div class="stat-value mono">${site.http_status ?? '—'}</div></div>
+        <div class="stat"><div class="stat-label">Response Time</div><div class="stat-value mono">${fmtResponse(site.response_time_ms)}</div></div>
         <div class="stat"><div class="stat-label">Last Check</div><div class="stat-value" style="font-size:15px">${timeAgo(site.last_checked_at)}</div></div>
       </section>
 
       <div class="panel">
         <div class="panel-head">
-          <h2>Uptime</h2>
+          <h2>Uptime Performance</h2>
           <div class="uptime-tabs">${tab('24h', '24H')}${tab('7d', '7D')}${tab('30d', '30D')}</div>
         </div>
         <div class="panel-body">
-          <div class="kpis" style="margin-bottom:6px">
-            <div class="stat is-up"><div class="stat-label">Uptime ${state.window.toUpperCase()}</div><div class="stat-value">${fmtUptime(uptime[state.window])}</div></div>
-            <div class="stat"><div class="stat-label">Current</div><div class="stat-value">${fmtResponse(r.current)}</div></div>
-            <div class="stat"><div class="stat-label">Average</div><div class="stat-value">${fmtResponse(r.avg)}</div></div>
-            <div class="stat"><div class="stat-label">Minimum</div><div class="stat-value">${fmtResponse(r.min)}</div></div>
-            <div class="stat"><div class="stat-label">Maximum</div><div class="stat-value">${fmtResponse(r.max)}</div></div>
+          <div class="kpis" style="margin-bottom:12px">
+            <div class="stat is-up"><div class="stat-label">Uptime ${state.window.toUpperCase()}</div><div class="stat-value mono">${fmtUptime(uptime[state.window])}</div></div>
+            <div class="stat"><div class="stat-label">Current</div><div class="stat-value mono">${fmtResponse(r.current)}</div></div>
+            <div class="stat"><div class="stat-label">Average</div><div class="stat-value mono">${fmtResponse(r.avg)}</div></div>
+            <div class="stat"><div class="stat-label">Minimum</div><div class="stat-value mono">${fmtResponse(r.min)}</div></div>
+            <div class="stat"><div class="stat-label">Maximum</div><div class="stat-value mono">${fmtResponse(r.max)}</div></div>
           </div>
-          <div class="panel-head" style="border:none;padding:12px 0 4px"><h2>Response Time</h2></div>
+          <div class="panel-head" style="border:none;padding:12px 0 4px"><h2>Response Time Trend</h2></div>
           ${chartSvg(data.series)}
         </div>
       </div>
 
       <div class="panel">
-        <div class="panel-head"><h2>Recent Checks</h2><span class="muted small">latest ${data.recentChecks.length}</span></div>
+        <div class="panel-head"><h2>Recent Check Logs</h2><span class="muted small">Latest ${data.recentChecks.length} checks</span></div>
         ${checkRows ? `<div class="table-wrap"><table>
           <thead><tr><th>Time</th><th>Status</th><th>HTTP</th><th>Response</th><th>Error</th><th>Source</th></tr></thead>
           <tbody>${checkRows}</tbody></table></div>` : '<div class="empty"><p>No checks recorded yet.</p></div>'}
@@ -400,10 +498,10 @@ async function renderDetail(id) {
         <div class="panel-head"><h2>Incidents</h2></div>
         ${incidentRows ? `<div class="table-wrap"><table>
           <thead><tr><th>Status</th><th>Started</th><th>Ended</th><th>Downtime</th><th>Detail</th></tr></thead>
-          <tbody>${incidentRows}</tbody></table></div>` : '<div class="empty"><p>No incidents for this website.</p></div>'}
+          <tbody>${incidentRows}</tbody></table></div>` : '<div class="empty"><p>No incidents recorded for this website.</p></div>'}
       </div>`;
 
-    $('#last-refresh').textContent = `updated ${new Date().toLocaleTimeString()}`;
+    $('.refresh-text').textContent = `updated ${new Date().toLocaleTimeString()}`;
   } catch (err) {
     view.innerHTML = `<div class="panel"><div class="empty"><p><strong>${esc(err.message)}</strong></p><p><a href="#/">← Back to dashboard</a></p></div></div>`;
   }
@@ -460,7 +558,7 @@ $('#form-add').addEventListener('submit', async (e) => {
       body: JSON.stringify({ urlsText, name: name || undefined, enabled }),
     });
     if (data.added && data.added.length > 0 && (data.invalid.length || data.duplicates.length)) {
-      showAddResult(data); // partial success — keep open, show details
+      showAddResult(data);
       await refresh();
       return;
     }
@@ -570,6 +668,12 @@ async function toggleEnabled(site) {
 /* ---------------- global click delegation ---------------- */
 
 document.addEventListener('click', (e) => {
+  // Theme toggle button
+  if (e.target.closest('#btn-theme')) {
+    toggleTheme();
+    return;
+  }
+
   // Close buttons
   const closeBtn = e.target.closest('[data-close]');
   if (closeBtn) {
@@ -584,8 +688,16 @@ document.addEventListener('click', (e) => {
     return;
   }
 
-  if (e.target.id === 'btn-refresh') {
+  if (e.target.closest('#btn-refresh')) {
     refresh();
+    return;
+  }
+
+  // Filter pills
+  const pill = e.target.closest('[data-filter]');
+  if (pill) {
+    state.statusFilter = pill.dataset.filter;
+    renderDashboard();
     return;
   }
 
@@ -612,7 +724,6 @@ document.addEventListener('click', (e) => {
 
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
-  // Rows carry data-id on the dashboard; the detail page uses state.currentSite.
   const row = btn.closest('[data-id]');
   const id = row ? Number(row.dataset.id) : state.currentSite?.id;
   if (!id) return;
@@ -637,6 +748,7 @@ for (const dialog of document.querySelectorAll('dialog')) {
 /* ---------------- boot ---------------- */
 
 (async function boot() {
+  initTheme();
   try {
     const health = await api('/api/health');
     if (health.check_interval_ms) {

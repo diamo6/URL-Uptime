@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="light dark" />
   <title>NHSO Website Uptime Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128065;</text></svg>" />
 </head>
@@ -12,13 +15,31 @@
   <header class="topbar">
     <div class="topbar-inner">
       <a class="brand" href="#/">
-        <span class="brand-dot" aria-hidden="true"></span>
-        <span>NHSO Uptime Monitor</span>
+        <div class="brand-badge">
+          <span class="brand-dot" aria-hidden="true"></span>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">NHSO Uptime</span>
+          <span class="brand-sub">Monitor Center</span>
+        </div>
       </a>
       <div class="topbar-actions">
-        <span id="last-refresh" class="muted small"></span>
-        <button id="btn-refresh" class="btn btn-ghost" title="Refresh">Refresh</button>
-        <button id="btn-add" class="btn btn-primary">+ Add Website</button>
+        <span id="last-refresh" class="muted small flex-align">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span class="refresh-text"></span>
+        </span>
+        <button id="btn-theme" class="btn btn-icon btn-ghost" title="Toggle Light / Dark mode" aria-label="Toggle theme">
+          <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <button id="btn-refresh" class="btn btn-ghost" title="Refresh data">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.2L2.5 16"/></svg>
+          <span>Refresh</span>
+        </button>
+        <button id="btn-add" class="btn btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>Add Website</span>
+        </button>
       </div>
     </div>
   </header>
@@ -26,27 +47,38 @@
   <main id="view" class="container" aria-live="polite"></main>
 
   <footer class="footer muted small">
-    NHSO Website Uptime Monitor — checks every <span id="interval-label">5 minutes</span> ·
-    <a href="/api/health" target="_blank" rel="noreferrer">API health</a>
+    <div class="footer-inner">
+      <span>NHSO Website Uptime Monitor — auto-checks every <strong id="interval-label">5 minutes</strong></span>
+      <span class="footer-dot">•</span>
+      <a href="/api/health" target="_blank" rel="noreferrer" class="footer-link">API Status</a>
+    </div>
   </footer>
 
   <!-- Add modal -->
   <dialog id="modal-add" class="modal">
     <form id="form-add" method="dialog">
-      <h2>Add Websites</h2>
-      <label for="add-name">Name <span class="muted">(optional — auto-generated per URL)</span></label>
-      <input id="add-name" type="text" placeholder="Production Website" autocomplete="off" />
+      <div class="modal-header">
+        <div>
+          <h2>Add Websites</h2>
+          <p class="modal-sub">Add single or multiple URLs to monitor uptime and performance.</p>
+        </div>
+        <button type="button" class="btn-close" data-close aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label for="add-name">Name <span class="muted">(optional — auto-generated if blank)</span></label>
+        <input id="add-name" type="text" placeholder="e.g. NHSO Portal Main" autocomplete="off" />
 
-      <label for="add-urls">URLs <span class="muted">(one per line — paste multiple URLs at once)</span></label>
-      <textarea id="add-urls" rows="6" spellcheck="false"
-        placeholder="https://example.com&#10;https://api.example.com/health&#10;https://portal.example.com"></textarea>
+        <label for="add-urls">URLs <span class="muted">(paste multiple URLs separated by newlines)</span></label>
+        <textarea id="add-urls" rows="5" spellcheck="false"
+          placeholder="https://example.com&#10;https://api.example.com/health&#10;https://portal.example.com"></textarea>
 
-      <label class="checkbox">
-        <input id="add-enabled" type="checkbox" checked />
-        <span>Enabled (monitor every 5 minutes)</span>
-      </label>
+        <label class="checkbox">
+          <input id="add-enabled" type="checkbox" checked />
+          <span>Enable monitoring immediately</span>
+        </label>
 
-      <div id="add-result" class="form-result" hidden></div>
+        <div id="add-result" class="form-result" hidden></div>
+      </div>
 
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" data-close>Cancel</button>
@@ -58,32 +90,46 @@
   <!-- Edit modal -->
   <dialog id="modal-edit" class="modal">
     <form id="form-edit" method="dialog">
-      <h2>Edit Website</h2>
-      <input id="edit-id" type="hidden" />
-      <label for="edit-name">Name</label>
-      <input id="edit-name" type="text" required placeholder="Production Website" autocomplete="off" />
-      <label for="edit-url">URL</label>
-      <input id="edit-url" type="text" required placeholder="https://example.com" autocomplete="off" />
-      <label class="checkbox">
-        <input id="edit-enabled" type="checkbox" />
-        <span>Enabled (monitor every 5 minutes)</span>
-      </label>
-      <div id="edit-error" class="form-error" hidden></div>
+      <div class="modal-header">
+        <div>
+          <h2>Edit Website</h2>
+          <p class="modal-sub">Update website details and monitoring configuration.</p>
+        </div>
+        <button type="button" class="btn-close" data-close aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input id="edit-id" type="hidden" />
+        <label for="edit-name">Name</label>
+        <input id="edit-name" type="text" required placeholder="NHSO Portal" autocomplete="off" />
+        
+        <label for="edit-url">URL</label>
+        <input id="edit-url" type="text" required placeholder="https://example.com" autocomplete="off" />
+        
+        <label class="checkbox">
+          <input id="edit-enabled" type="checkbox" />
+          <span>Enable monitoring</span>
+        </label>
+        <div id="edit-error" class="form-error" hidden></div>
+      </div>
+      
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" data-close>Cancel</button>
-        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
       </div>
     </form>
   </dialog>
 
-  <!-- Delete confirmation -->
+  <!-- Delete confirmation modal -->
   <dialog id="modal-confirm" class="modal modal-sm">
     <div class="confirm-body">
-      <h2>Delete website?</h2>
+      <div class="modal-header">
+        <h2>Delete Website?</h2>
+        <button type="button" class="btn-close" data-close aria-label="Close">&times;</button>
+      </div>
       <p id="confirm-text" class="muted"></p>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" data-close>Cancel</button>
-        <button type="button" id="btn-confirm-delete" class="btn btn-danger">Delete</button>
+        <button type="button" id="btn-confirm-delete" class="btn btn-danger">Delete Website</button>
       </div>
     </div>
   </dialog>

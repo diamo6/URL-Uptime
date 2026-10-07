@@ -8,9 +8,11 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
+const env = { ...process.env, NODE_TLS_REJECT_UNAUTHORIZED: '0' };
+
 const procs = [
-  spawn(process.execPath, [path.join(root, 'backend', 'server.js')], { stdio: 'inherit', cwd: root }),
-  spawn(process.execPath, [path.join(root, 'worker', 'index.js')], { stdio: 'inherit', cwd: root }),
+  spawn(process.execPath, [path.join(root, 'backend', 'server.js')], { stdio: 'inherit', cwd: root, env }),
+  spawn(process.execPath, [path.join(root, 'worker', 'index.js')], { stdio: 'inherit', cwd: root, env }),
 ];
 
 function stop(code = 0) {
