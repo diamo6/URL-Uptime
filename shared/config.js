@@ -58,6 +58,7 @@ export const config = {
   requestTimeoutMs: int('REQUEST_TIMEOUT_MS', 10 * 1000), // 10 seconds
   maxRedirects: int('MAX_REDIRECTS', 5),
   teamsWebhookUrl: str('TEAMS_WEBHOOK_URL', ''),
+  discordWebhookUrl: str('DISCORD_WEBHOOK_URL', ''),
   userAgent: str(
     'USER_AGENT',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'

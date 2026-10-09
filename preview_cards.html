@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f5f5f5; padding: 30px; }
+  
+  h1 { text-align: center; margin-bottom: 10px; color: #333; }
+  h2 { text-align: center; margin-bottom: 30px; color: #666; font-size: 14px; }
+  
+  .cards { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+  
+  /* Card wrapper */
+  .card-wrapper { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width: 360px; }
+  .card-wrapper h3 { margin-bottom: 16px; font-size: 13px; color: #888; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+  
+  /* Simulated Teams Adaptive Card */
+  .adaptive-card { background: #fff; border-radius: 8px; overflow: hidden; }
+  
+  .ac-title { padding: 14px 16px; color: #fff; font-size: 16px; font-weight: 700; }
+  .ac-title.danger { background: #c32929; }
+  .ac-title.good    { background: #107c10; }
+  .ac-title.warning { background: #d83b01; }
+  
+  .ac-body { padding: 12px 16px; }
+  
+  .ac-status { 
+    display: inline-block; padding: 4px 12px; border-radius: 4px; 
+    font-weight: 700; font-size: 14px; margin-bottom: 10px; color: #fff;
+  }
+  .ac-status.danger { background: #c32929; }
+  .ac-status.good   { background: #107c10; }
+  .ac-status.warning { background: #d83b01; }
+  
+  .ac-text { font-size: 14px; line-height: 1.5; color: #333; }
+  .ac-text .detail { margin: 6px 0; color: #555; }
+  .ac-text .detail b { color: #222; }
+  .ac-text .note { margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; font-size: 13px; color: #777; }
+  
+  /* JSON viewer */
+  .json-section { margin-top: 40px; }
+  .json-section h2 { text-align: left; margin-bottom: 12px; }
+  pre { background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 8px; font-size: 12px; overflow-x: auto; line-height: 1.5; max-height: 400px; }
+  pre .key { color: #9cdcfe; }
+  pre .str { color: #ce9178; }
+  pre .num { color: #b5cea8; }
+</style>
+</head>
+<body>
+
+<h1>🔔 Website Uptime Monitor — Teams Alerts</h1>
+<h2>Preview: Exactly what Teams users will see</h2>
+
+<div class="cards">
+
+  <!-- CARD 1: Site DOWN -->
+  <div class="card-wrapper">
+    <h3>🔴 Example 1: Site Goes DOWN</h3>
+    <div class="adaptive-card">
+      <div class="ac-title danger">🔴 DOWN — Website Uptime Monitor</div>
+      <div class="ac-body">
+        <span class="ac-status danger">Status: DOWN</span>
+        <div class="ac-text">
+          <div class="detail"><b>🔴 DOWN</b> — <b>Example Site</b> (https://example.com)</div>
+          <div class="detail">• HTTP status: 503</div>
+          <div class="detail">• Error: Service Unavailable</div>
+          <div class="detail">• Response time: 250 ms</div>
+          <div class="detail">• Detected at: 2026-10-09T10:30:00Z</div>
+          <div class="note">The website server is unreachable or returned a 5xx error.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD 2: Site Recovery -->
+  <div class="card-wrapper">
+    <h3>🟢 Example 2: Site RECOVERS</h3>
+    <div class="adaptive-card">
+      <div class="ac-title good">🟢 Recovery — Website Uptime Monitor</div>
+      <div class="ac-body">
+        <span class="ac-status good">Status: UP</span>
+        <div class="ac-text">
+          <div class="detail"><b>✅ RECOVERY</b> — <b>Example Site</b> (https://example.com) is back UP</div>
+          <div class="detail">• Previous state: <b>DOWN</b></div>
+          <div class="detail">• Duration: 15m 30s</div>
+          <div class="detail">• HTTP status: 200</div>
+          <div class="detail">• Response time: 120 ms</div>
+          <div class="detail">• Resolved at: 2026-10-09T10:45:00Z</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD 3: WARNING -->
+  <div class="card-wrapper">
+    <h3>🟡 Example 3: WARNING (4xx Error)</h3>
+    <div class="adaptive-card">
+      <div class="ac-title warning">🟡 WARNING — Website Uptime Monitor</div>
+      <div class="ac-body">
+        <span class="ac-status warning">Status: WARNING</span>
+        <div class="ac-text">
+          <div class="detail"><b>🟡 WARNING</b> — <b>Example Site</b> (https://example.com)</div>
+          <div class="detail">• HTTP status: 404</div>
+          <div class="detail">• Error: Resource Not Found</div>
+          <div class="detail">• Response time: 180 ms</div>
+          <div class="detail">• Detected at: 2026-10-09T10:30:00Z</div>
+          <div class="note">The website returned a 4xx error — resource issue, not necessarily server down.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- JSON Preview -->
+<div class="json-section">
+  <h2>📄 Card JSON (what code sends):</h2>
+  <pre><span style="color:#569ad6;">{</span>
+  <span style="color:#9cdcfe;">"type"</span><span style="color:#569ad6;">:</span> <span style="color:#ce9178;">"AdaptiveCard"</span><span style="color:#569ad6;">,</span>
+  <span style="color:#9cdcfe;">"version"</span><span style="color:#569ad6;">:</span> <span style="color:#107c10;">"1.6"</span><span style="color:#569ad6;">,</span>
+  <span style="color:#9cdcfe;">"$schema"</span><span style="color:#569ad6;">:</span> <span style="color:#ce9178;">"https://adaptivecards.io/schemas/adaptive-card.json"</span><span style="color:#569ad6;">,</span>
+  <span style="color:#9cdcfe;">"body"</span><span style="color:#569ad6;">: [
+    <span style="color:#569ad6;">{</span>
+      <span style="color:#9cdcfe;">"type"</span><span style="color:#569ad6;">:</span> <span style="color:#ce9178;">"TextBlock"</span><span style="color:#569ad6;">,</span>
+      <span style="color:#9cdcfe;">"text"</span><span style="color:#569ad6;">:</span> <span style="color:#ce9178;">"🔴 DOWN — Website Uptime Monitor"</span><span style="color:#569ad6;">,</span>
+      <span style="color:#9cdcfe;">"size"</span><span style="color:#569ad6;">:</span> <span style="color:#ce9178;">"large"</span><span style="color:#569ad6;">,</span>
+      <span style="color:#9cdcfe;">"weight"</span><span style="color:#569ad6;">:</span> <span style="color:#ce9178;">"bolder"</span><span style="color:#569ad6;">,</span>
+      <span style="color:#9cdcfe;">"color"</span><span style="color:#569ad6;">:</span> <span style="color:#ce9178;">"danger"</span><span style="color:#569ad6;">,</span>
+      <span style="color:#9cdcfe;">"wrap"</span><span style="color:#569ad6;">:</span> <span style="color:#569ad6;">true</span>
+    <span style="color:#569ad6;">},
+    </span><span style="color:#569ad6;">{</span>
+      <span style="color:#9cdcfe;">"type"</span><span style="color:#569ad6;">:</span> <span style="color:#ce9178;">"ColumnSet"</span><span style="color:#569ad6;">,</span>
+      <span style="color:#9cdcfe;">"columns"</span><span style="color:#569ad6;">: [
+        <span style="color:#569ad6;">{</span>
+          <span style="color:#9cdcfe;">"type"</span><span style="color:#569ad6;">:</span> <span style="color:#ce9178;">"Column"</span><span style="color:#569ad6;">,</span>
+          <span style="color:#9cdcfe;">"width"</span><span style="color:#569ad6;">:</span> <span style="color:#ce9178;">"auto"</span><span style="color:#569ad6;">,</span>
+          <span style="color:#9cdcfe;">"items"</span><span style="color:#569ad6;">: [<span style="color:#569ad6;">{</span>
+            <span style="color:#9cdcfe;">"type"</span><span style="color:#569ad6;">:</span> <span style="color:#ce9178;">"TextBlock"</span><span style="color:#569ad6;">,</span>
+            <span style="color:#9cdcfe;">"text"</span><span style="color:#569ad6;">:</span> <span style="color:#ce9178;">"Status: DOWN"</span><span style="color:#569ad6;">,</span>
+            <span style="color:#9cdcfe;">"color"</span><span style="color:#569ad6;">:</span> <span style="color:#ce9178;">"danger"</span><span style="color:#569ad6;">,</span>
+            <span style="color:#9cdcfe;">"weight"</span><span style="color:#569ad6;">:</span> <span style="color:#ce9178;">"bolder"</span><span style="color:#569ad6;">,</span>
+            <span style="color:#9cdcfe;">"wrap"</span><span style="color:#569ad6;">:</span> <span style="color:#569ad6;">true</span>
+          <span style="color:#569ad6;">}]</span>
+        <span style="color:#569ad6;">}
+      ]
+    </span><span style="color:#569ad6;">},
+    </span><span style="color:#569ad6;">{</span>
+      <span style="color:#9cdcfe;">"type"</span><span style="color:#569ad6;">:</span> <span style="color:#ce9178;">"TextBlock"</span><span style="color:#569ad6;">,</span>
+      <span style="color:#9cdcfe;">"text"</span><span style="color:#569ad6;">:</span> <span style="color:#ce9178;">"🔴 DOWN — Example Site (https://example.com)\n\n• HTTP status: 503\n• Error: Service Unavailable\n• Response time: 250 ms\n• Detected at: 2026-10-09T10:30:00Z\n\nThe website server is unreachable or returned a 5xx error."</span><span style="color:#569ad6;">,</span>
+      <span style="color:#9cdcfe;">"wrap"</span><span style="color:#569ad6;">:</span> <span style="color:#569ad6;">true</span>
+    <span style="color:#569ad6;">}
+  ],
+  </span><span style="color:#9cdcfe;">"actions"</span><span style="color:#569ad6;">: []
+<span style="color:#569ad6;">}</span></pre>
+</div>
+
+</body>
+</html>

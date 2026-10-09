@@ -1,51 +1,47 @@
 /**
- * Microsoft Teams notification via Incoming Webhook.
- * Alerts are sent only on state changes (never every cycle).
+ * Discord webhook notification (embed card).
+ * Uses Discord's "embed" format for a nice card-style alert.
  */
 import { config } from './config.js';
 import log from './logger.js';
 
-const COLORS = { DOWN: 'FF0000', WARNING: 'FFC107', UP: '2E7D32' };
+const STATUS_COLORS = {
+  DOWN: 0xDC143C,      // Red
+  WARNING: 0xFFA500,    // Orange
+  UP: 0x2ECC71,         // Green
+};
 
-/**
- * Send a message to Teams. No-op when TEAMS_WEBHOOK_URL is empty.
- * Returns true on success.
- */
-export async function sendTeamsMessage(text, { color = '0078D4', title = 'Website Uptime Monitor' } = {}) {
-  const url = config.teamsWebhookUrl;
-  if (!url) {
-    log.debug('TEAMS_WEBHOOK_URL not set — skipping notification');
-    return false;
-  }
-  const payload = {
-    summary: title,
-    themeColor: color,
-    text,
-    title,
+export async function sendTeamsMessage(bodyText, { title = 'ALERT', status = 'DOWN' } = {}) {
+  const url = config.discordWebhookUrl;
+  if (!url) { log.debug('DISCORD_WEBHOOK_URL not set'); return false; }
+
+  const color = STATUS_COLORS[status] ?? STATUS_COLORS.DOWN;
+  const timestamp = new Date().toISOString();
+
+  const embed = {
+    title: title,
+    description: bodyText,
+    color: color,
+    timestamp: timestamp,
+    footer: {
+      text: 'Website Uptime Monitor'
+    }
   };
 
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (res.ok) {
-        log.info('Teams notification sent');
-        return true;
-      }
-      log.warn(`Teams webhook returned HTTP ${res.status} (attempt ${attempt})`);
-    } catch (err) {
-      log.warn(`Teams webhook failed: ${err.message} (attempt ${attempt})`);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ embeds: [embed] }),
+      signal: AbortSignal.timeout(10000)
+    });
+    if (res.ok || res.status === 204) {
+      log.info('Discord embed sent');
+      return true;
     }
-    if (attempt === 1) await new Promise((r) => setTimeout(r, 1000));
+    log.warn('Discord webhook HTTP ' + res.status);
+  } catch (err) {
+    log.warn('Discord webhook failed: ' + err.message);
   }
-  log.error('Teams notification failed after 2 attempts');
   return false;
-}
-
-export function alertColor(status) {
-  return COLORS[status] ?? '0078D4';
 }

@@ -13,9 +13,21 @@ import {
   openIncident,
   closeIncident,
   getWebsite,
+  listChecks,
 } from './db.js';
 import { nowIso } from './db.js';
 import log from './logger.js';
+
+/** Count consecutive checks of the same status from newest to oldest. */
+function consecutiveStatusCount(websiteId, status) {
+  const checks = listChecks(websiteId, { limit: 50 }).reverse(); // oldest → newest
+  let count = 0;
+  for (let i = checks.length - 1; i >= 0; i--) {
+    if (checks[i].status === status) count++;
+    else break;
+  }
+  return count;
+}
 
 /**
  * @param {object} website  row from `websites`
@@ -64,75 +76,50 @@ async function handleStateChange(website, from, to, result, at) {
   const open = getOpenIncident(website.id);
 
   if (to === 'UP') {
-    if (!open) return null; // back to healthy with nothing open
-    const closed = closeIncident(open.id, at);
-    const downtime = formatDuration(closed?.downtime_seconds ?? 0);
-    const name = `**${website.name}** (${website.url})`;
+    if (!open) return null;
+    closeIncident(open.id, at);
+    const downtime = formatDuration(open?.downtime_seconds ?? 0);
+    const name = website.url;
+    const consecutive = consecutiveStatusCount(website.id, 'UP');
     await sendTeamsMessage(
-      [
-        `✅ **RECOVERY** — ${name} is back UP`,
-        ``,
-        `• Previous state: **${open.status}**`,
-        `• Duration: ${downtime}`,
-        `• HTTP status: ${result.http_status ?? 'n/a'}`,
-        `• Response time: ${result.response_time_ms} ms`,
-        `• Resolved at: ${at}`,
-      ].join('\n'),
-      { color: alertColor('UP'), title: '🟢 Recovery — Website Uptime Monitor' }
+      `🟢 UP — ${name} (${consecutive} checks up)`,
+      { title: 'ALERT', status: 'UP' }
     );
-    return closed;
+    return null;
   }
 
   // to === 'DOWN' or 'WARNING'
-  const message = result.error
-    ? `HTTP ${result.http_status ?? '—'} — ${result.error}`
-    : `HTTP ${result.http_status}`;
-
   if (!open) {
-    const inc = openIncident({
-      website_id: website.id,
-      status: to,
-      message,
-      started_at: at,
-    });
     const emoji = to === 'DOWN' ? '🔴' : '🟡';
     const label = to === 'DOWN' ? 'DOWN' : 'WARNING';
-    const name = `**${website.name}** (${website.url})`;
+    const name = website.url;
+    const consecutive = consecutiveStatusCount(website.id, to);
+    openIncident({
+      website_id: website.id,
+      status: to,
+      message: result.error || `HTTP ${result.http_status}`,
+      started_at: at,
+    });
     await sendTeamsMessage(
-      [
-        `${emoji} **${label}** — ${name}`,
-        ``,
-        `• HTTP status: ${result.http_status ?? 'n/a'}`,
-        `• Error: ${result.error ?? 'n/a'}`,
-        `• Response time: ${result.response_time_ms} ms`,
-        `• Detected at: ${at}`,
-        ``,
-        to === 'DOWN'
-          ? 'The website server is unreachable or returned a 5xx error.'
-          : 'The website returned a 4xx error — resource issue, not necessarily server down.',
-      ].join('\n'),
-      { color: alertColor(to), title: `${emoji} ${label} — Website Uptime Monitor` }
+      `${emoji} ${label} — ${name} (${consecutive} consecutive ${label})`,
+      { title: 'ALERT', status: to }
     );
-    return inc;
+    return null;
   }
 
   if (open.status !== to) {
-    // Escalation / de-escalation (WARNING ↔ DOWN) — still a state change → notify once.
-    const closed = closeIncident(open.id, at);
-    const inc = openIncident({ website_id: website.id, status: to, message, started_at: at });
+    // Escalation / de-escalation
+    closeIncident(open.id, at);
+    openIncident({ website_id: website.id, status: to, message: result.error || `HTTP ${result.http_status}`, started_at: at });
     const emoji = to === 'DOWN' ? '🔴' : '🟡';
-    const name = `**${website.name}** (${website.url})`;
+    const label = to === 'DOWN' ? 'DOWN' : 'WARNING';
+    const name = website.url;
+    const consecutive = consecutiveStatusCount(website.id, to);
     await sendTeamsMessage(
-      [
-        `${emoji} **${to}** — ${name} changed from ${open.status} to ${to}`,
-        ``,
-        `• HTTP status: ${result.http_status ?? 'n/a'}`,
-        `• Error: ${result.error ?? 'n/a'}`,
-        `• Detected at: ${at}`,
-      ].join('\n'),
-      { color: alertColor(to), title: `${emoji} ${to} — Website Uptime Monitor` }
+      `${emoji} ${label} — ${name} (${consecutive} consecutive ${label})`,
+      { title: 'ALERT', status: to }
     );
-    return inc ?? closed;
+    return null;
   }
 
   return open; // same unhealthy state — no duplicate alert
