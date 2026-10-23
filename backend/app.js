@@ -251,12 +251,14 @@ export function createApp() {
   router.add('GET', '/api/incidents', (req, res, params, query) => {
     const limit = Math.min(Number(query.get('limit')) || 50, 200);
     const websiteId = query.get('websiteId') ? Number(query.get('websiteId')) : null;
-    const incidents = listIncidents({ websiteId, limit }).map((inc) => ({
-      ...inc,
-      website: getWebsite(inc.website_id)
-        ? { id: inc.website_id, name: getWebsite(inc.website_id).name, url: getWebsite(inc.website_id).url }
-        : null,
-    }));
+    const websitesCache = {};
+    const incidents = listIncidents({ websiteId, limit }).map((inc) => {
+      if (!websitesCache[inc.website_id]) {
+        const w = getWebsite(inc.website_id);
+        websitesCache[inc.website_id] = w ? { id: w.id, name: w.name, url: w.url } : null;
+      }
+      return { ...inc, website: websitesCache[inc.website_id] };
+    });
     sendJson(res, 200, { incidents });
   });
 

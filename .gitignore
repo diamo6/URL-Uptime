@@ -5,3 +5,5 @@ database/*.db-wal
 database/*.db-shm
 *.log
 .DS_Store
+
+.vercel

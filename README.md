@@ -1,6 +1,6 @@
 # Website Uptime Monitor
 
-Minimalist website uptime monitoring dashboard — HTTP status, response time, uptime %, incident history, and Microsoft Teams alerts.
+Minimalist website uptime monitoring dashboard — HTTP status, response time, uptime %, incident history, and Discord embed alerts.
 
 **Zero runtime dependencies.** Runs on Node.js ≥ 23.4 (tested on Node 24) with the built-in `node:sqlite` — no `npm install` required.
 
@@ -15,8 +15,9 @@ Minimalist website uptime monitoring dashboard — HTTP status, response time, u
 - ✅ Classification: `200–399 → UP`, `400–499 → WARNING`, `500–599 / network failure → DOWN`
 - ✅ Persistent history (SQLite/WAL) + **Uptime %** for 24h / 7d / 30d
 - ✅ Incident history (open/close + downtime duration)
-- ✅ **Microsoft Teams** alerts on state change only — never spam every cycle
-  - DOWN / WARNING alert, escalation, and RECOVERY notification
+- ✅ **Discord** embed card alerts on state change only — never spam every cycle
+  - DOWN / WARNING / UP alert with color-coded embed (red / orange / green)
+  - Footer: "Website Uptime Monitor" + timestamp
 - ✅ **Check Now** (manual check) from the dashboard
 - ✅ Website detail: response-time stats + chart, per-window uptime, checks, incidents
 - ✅ SSRF protection (private/loopback/metadata IPs blocked, redirects re-validated)
@@ -96,7 +97,7 @@ Copy `.env.example` → `.env`. All values have working defaults.
 | `CHECK_INTERVAL_MS` | `300000` (5 min) | Monitoring interval |
 | `REQUEST_TIMEOUT_MS` | `10000` (10 s) | HTTP timeout |
 | `MAX_REDIRECTS` | `5` | Redirect limit (each hop SSRF-checked) |
-| `TEAMS_WEBHOOK_URL` | *(empty)* | Microsoft Teams incoming webhook; empty = alerts off |
+|| `DISCORD_WEBHOOK_URL` | *(empty)* | Discord webhook URL for embed alerts; empty = alerts off |
 | `ALLOW_PRIVATE_IPS` | `false` | Set `true` **only** for local testing (SSRF) |
 | `LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error` |
 
@@ -163,12 +164,15 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design
 
 ---
 
-## Microsoft Teams
+## Discord
 
-1. In Teams → channel → **Connectors → Incoming Webhook** → create, copy the URL.
-2. Put it in `.env` as `TEAMS_WEBHOOK_URL=...` and restart.
-3. Alerts are sent **only on state change**: UP→WARNING, →DOWN, escalation, and
-   recovery (with downtime duration).
+1. Create a Discord webhook: Server Settings → Integrations → Webhooks → New Webhook → copy URL.
+2. Put it in `.env` as `DISCORD_WEBHOOK_URL=...` and restart.
+3. Alerts are sent **only on state change** as color-coded embed cards:
+   - 🔴 **DOWN** — red border
+   - 🟡 **WARNING** — orange border
+   - 🟢 **UP** — green border (recovery)
+   - Each embed shows title, description, footer ("Website Uptime Monitor"), and timestamp.
 
 ---
 

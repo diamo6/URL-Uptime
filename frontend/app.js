@@ -67,8 +67,9 @@ function fmtDuration(seconds) {
   const s = Math.max(0, Number(seconds) || 0);
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s % 60}s`;
+  const sec = s % 60;
+  if (h > 0) return `${h}h ${m}m ${sec}s`;
+  if (m > 0) return `${m}m ${sec}s`;
   return `${s}s`;
 }
 

@@ -1,7 +1,7 @@
 {
   "name": "website-uptime-monitor",
   "version": "1.0.0",
-  "description": "Minimalist website uptime monitoring dashboard — HTTP status, response time, uptime, incidents, Microsoft Teams alerts. Zero runtime dependencies (Node.js >= 22.5).",
+  "description": "Minimalist website uptime monitoring dashboard — HTTP status, response time, uptime %, incidents, Discord embed alerts. Zero runtime dependencies (Node.js >= 23.4).",
   "type": "module",
   "private": true,
   "engines": {

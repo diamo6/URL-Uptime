@@ -1,7 +1,8 @@
 /* ------------------------------------------------------------------ */
 /* NHSO Website Uptime Monitor — Premium Modern UI/UX Design System   */
 /* Primary Palette: Danube (#5992c6), Cocoa Brown (#31241f),          */
-/*                  Shilo (#e9b8c9), Torea Bay (#0a2a92)             */
+/*                  Shilo (#e9b8c9), Torea Bay (#0a2a92)              */
+/* Dark Mode Palette: #4783ab → #215f89 → #03426d → #002843 → #001625 */
 /* ------------------------------------------------------------------ */
 
 :root {
@@ -81,28 +82,28 @@
 /* DARK MODE (Warm Cocoa Obsidian, Danube Glow & Shilo Accents)      */
 /* ================================================================ */
 [data-theme="dark"] {
-  --bg: #130d0b;
-  --bg-gradient: radial-gradient(circle at 15% 15%, rgba(89, 146, 198, 0.12) 0%, rgba(19, 13, 11, 1) 85%);
-  --panel: rgba(31, 23, 20, 0.82);
-  --panel-solid: #211915;
-  --panel-hover: #2d221c;
-  --border: rgba(233, 184, 201, 0.14);
-  --border-subtle: rgba(255, 255, 255, 0.05);
+  --bg: #001625;
+  --bg-gradient: radial-gradient(circle at 15% 15%, rgba(71, 131, 171, 0.15) 0%, rgba(0, 22, 37, 1) 85%);
+  --panel: rgba(0, 40, 67, 0.85);
+  --panel-solid: #002843;
+  --panel-hover: #03426d;
+  --border: rgba(33, 95, 137, 0.4);
+  --border-subtle: rgba(6, 60, 109, 0.2);
 
-  --text: #f6f7fb;
-  --text-secondary: #d8dee9;
-  --muted: #a7b3c2;
-  --muted-light: #717d8e;
+  --text: #e0e8f0;
+  --text-secondary: #b8c8d8;
+  --muted: #6a88a4;
+  --muted-light: #4a6680;
 
   /* Primary Button & Accent */
-  --primary: var(--danube);
-  --primary-hover: var(--danube-light);
-  --primary-text: #071426;
-  --primary-glow: rgba(89, 146, 198, 0.3);
+  --primary: #4783ab;
+  --primary-hover: #215f89;
+  --primary-text: #ffffff;
+  --primary-glow: rgba(71, 131, 171, 0.35);
 
-  --accent-danube: var(--danube);
-  --accent-shilo: var(--shilo);
-  --accent-badge-bg: rgba(233, 184, 201, 0.12);
+  --accent-danube: #4783ab;
+  --accent-shilo: #6a98b8;
+  --accent-badge-bg: rgba(71, 131, 171, 0.15);
 
   /* Status Colors */
   --up: #2dd4bf;
@@ -120,9 +121,9 @@
   --unknown: #94a3b8;
   --unknown-bg: rgba(148, 163, 184, 0.14);
 
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow: 0 6px 18px -2px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(233, 184, 201, 0.08);
-  --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(89, 146, 198, 0.15);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.6);
+  --shadow: 0 6px 18px -2px rgba(0, 22, 37, 0.7), 0 0 0 1px rgba(33, 95, 137, 0.15);
+  --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(71, 131, 171, 0.2);
 
   color-scheme: dark;
 }
@@ -184,7 +185,7 @@ a:hover { color: var(--primary-hover); }
   width: 36px;
   height: 36px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, rgba(89, 146, 198, 0.25), rgba(10, 42, 146, 0.2));
+  background: linear-gradient(135deg, rgba(71, 131, 171, 0.35), rgba(33, 95, 137, 0.3));
   border: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -219,7 +220,7 @@ a:hover { color: var(--primary-hover); }
 /* Theme toggle icon rules */
 .icon-sun { display: none; }
 .icon-moon { display: block; }
-[data-theme="dark"] .icon-sun { display: block; color: var(--shilo); }
+[data-theme="dark"] .icon-sun { display: block; color: var(--primary); }
 [data-theme="dark"] .icon-moon { display: none; }
 
 /* ---------- Container & Footer ---------- */
@@ -369,7 +370,7 @@ a:hover { color: var(--primary-hover); }
   height: 3.5px;
   background: var(--border);
 }
-.stat.is-total::after { background: linear-gradient(90deg, var(--torea), var(--danube)); }
+.stat.is-total::after { background: linear-gradient(90deg, var(--primary-hover), var(--primary)); }
 .stat.is-up::after { background: var(--up); }
 .stat.is-warning::after { background: var(--warning); }
 .stat.is-down::after { background: var(--down); }
@@ -647,7 +648,7 @@ tr.row-WARNING { background: var(--warning-bg); }
   outline: none;
 }
 .modal::backdrop {
-  background: rgba(31, 23, 20, 0.7);
+  background: rgba(0, 22, 37, 0.8);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }

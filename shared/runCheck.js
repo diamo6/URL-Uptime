@@ -5,7 +5,7 @@
  * Used by the background worker (scheduler) and by the manual "Check Now" action.
  */
 import { checkUrl } from './monitor.js';
-import { sendTeamsMessage, alertColor } from './teams.js';
+import { sendTeamsMessage } from './teams.js';
 import {
   insertCheck,
   setWebsiteStatus,

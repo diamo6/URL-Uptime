@@ -12,7 +12,7 @@ server.listen(config.port, config.host, () => {
   const boundPort = server.address()?.port ?? config.port;
   log.info(`API + Dashboard listening on http://localhost:${boundPort}`);
   log.info(`check interval: ${config.checkIntervalMs / 1000}s | timeout: ${config.requestTimeoutMs / 1000}s`);
-  log.info(`teams webhook: ${config.teamsWebhookUrl ? 'configured' : 'not configured (alerts disabled)'}`);
+  log.info(`teams webhook: ${config.discordWebhookUrl ? 'configured' : 'not configured (alerts disabled)'}`);
 });
 
 function shutdown(signal) {

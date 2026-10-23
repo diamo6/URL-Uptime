@@ -64,7 +64,7 @@ export const config = {
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
   ),
   allowPrivateIps: bool('ALLOW_PRIVATE_IPS', true),
-  ignoreSslErrors: bool('IGNORE_SSL_ERRORS', true),
+  ignoreSslErrors: bool('IGNORE_SSL_ERRORS', false),
   seedExamples: bool('SEED_EXAMPLES', false),
   logLevel: str('LOG_LEVEL', 'info'),
 };
