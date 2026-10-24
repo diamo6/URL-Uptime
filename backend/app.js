@@ -62,7 +62,7 @@ export function createApp() {
       database: 'ok',
       check_interval_ms: config.checkIntervalMs,
       request_timeout_ms: config.requestTimeoutMs,
-      teams_webhook_configured: Boolean(config.teamsWebhookUrl),
+      discord_webhook_configured: Boolean(config.discordWebhookUrl),
       worker: { active: workerActive, last_heartbeat: hb },
       websites: getSummary(),
     });

@@ -149,7 +149,7 @@ website-uptime-monitor/
 ├── frontend/     # static SPA (HTML/CSS/JS — no build step)
 ├── backend/      # REST API + static hosting (node:http)
 ├── worker/       # background scheduler (5-min checks, singleton lock)
-├── shared/       # config, db, monitor engine, incidents, Teams, URL utils
+├── shared/       # config, db, monitor engine, incidents, alerting, URL utils
 ├── database/     # schema.sql + uptime.db (created at runtime)
 ├── scripts/      # dev launcher, seed, one-shot check
 ├── tests/        # node:test suites

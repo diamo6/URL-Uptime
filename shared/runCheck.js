@@ -5,7 +5,7 @@
  * Used by the background worker (scheduler) and by the manual "Check Now" action.
  */
 import { checkUrl } from './monitor.js';
-import { sendTeamsMessage } from './teams.js';
+import { sendDiscordMessage } from './teams.js';
 import {
   insertCheck,
   setWebsiteStatus,
@@ -20,9 +20,9 @@ import log from './logger.js';
 
 /** Count consecutive checks of the same status from newest to oldest. */
 function consecutiveStatusCount(websiteId, status) {
-  const checks = listChecks(websiteId, { limit: 50 }).reverse(); // oldest → newest
+  const checks = listChecks(websiteId, { limit: 50 }).reverse(); // newest → oldest
   let count = 0;
-  for (let i = checks.length - 1; i >= 0; i--) {
+  for (let i = 0; i < checks.length; i++) {
     if (checks[i].status === status) count++;
     else break;
   }
@@ -81,7 +81,7 @@ async function handleStateChange(website, from, to, result, at) {
     const downtime = formatDuration(open?.downtime_seconds ?? 0);
     const name = website.url;
     const consecutive = consecutiveStatusCount(website.id, 'UP');
-    await sendTeamsMessage(
+    await sendDiscordMessage(
       `🟢 UP — ${name} (${consecutive} checks up)`,
       { title: 'ALERT', status: 'UP' }
     );
@@ -100,7 +100,7 @@ async function handleStateChange(website, from, to, result, at) {
       message: result.error || `HTTP ${result.http_status}`,
       started_at: at,
     });
-    await sendTeamsMessage(
+    await sendDiscordMessage(
       `${emoji} ${label} — ${name} (${consecutive} consecutive ${label})`,
       { title: 'ALERT', status: to }
     );
@@ -115,7 +115,7 @@ async function handleStateChange(website, from, to, result, at) {
     const label = to === 'DOWN' ? 'DOWN' : 'WARNING';
     const name = website.url;
     const consecutive = consecutiveStatusCount(website.id, to);
-    await sendTeamsMessage(
+    await sendDiscordMessage(
       `${emoji} ${label} — ${name} (${consecutive} consecutive ${label})`,
       { title: 'ALERT', status: to }
     );

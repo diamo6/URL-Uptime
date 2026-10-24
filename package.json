@@ -9,7 +9,6 @@
   },
   "scripts": {
     "start": "node backend/server.js",
-    "worker": "node worker/index.js",
     "dev": "node scripts/dev.js",
     "seed": "node scripts/seed.js",
     "test": "node --test",

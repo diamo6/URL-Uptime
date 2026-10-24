@@ -57,7 +57,6 @@ export const config = {
   checkIntervalMs: int('CHECK_INTERVAL_MS', 5 * 60 * 1000), // 5 minutes
   requestTimeoutMs: int('REQUEST_TIMEOUT_MS', 10 * 1000), // 10 seconds
   maxRedirects: int('MAX_REDIRECTS', 5),
-  teamsWebhookUrl: str('TEAMS_WEBHOOK_URL', ''),
   discordWebhookUrl: str('DISCORD_WEBHOOK_URL', ''),
   userAgent: str(
     'USER_AGENT',

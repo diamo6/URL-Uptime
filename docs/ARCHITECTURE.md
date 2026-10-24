@@ -18,7 +18,7 @@
 └───────┬───────────┘                          └───────────────────┘
         │ state change only
 ┌───────┴───────────┐
-│ Microsoft Teams   │
+│ Discord / Teams   │
 │ Incoming Webhook  │
 └───────────────────┘
 ```

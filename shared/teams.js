@@ -11,7 +11,7 @@ const STATUS_COLORS = {
   UP: 0x2ECC71,         // Green
 };
 
-export async function sendTeamsMessage(bodyText, { title = 'ALERT', status = 'DOWN' } = {}) {
+export async function sendDiscordMessage(bodyText, { title = 'ALERT', status = 'DOWN' } = {}) {
   const url = config.discordWebhookUrl;
   if (!url) { log.debug('DISCORD_WEBHOOK_URL not set'); return false; }
 
