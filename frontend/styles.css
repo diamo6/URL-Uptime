@@ -560,7 +560,7 @@ tr.row-WARNING { background: var(--warning-bg); }
 
 .site-cell { display: flex; flex-direction: column; gap: 3px; min-width: 220px; }
 .site-name { font-weight: 700; font-size: 14px; color: var(--text); }
-.site-url { color: var(--muted); font-size: 12px; font-family: var(--font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 380px; }
+.site-url { color: var(--muted); font-size: 12px; font-family: var(--font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 380px; }
 
 .actions { display: flex; gap: 6px; flex-wrap: nowrap; align-items: center; }
 

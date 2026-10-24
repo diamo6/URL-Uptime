@@ -183,22 +183,65 @@ const state = {
   sort: { key: 'status', dir: 'asc' },
 };
 
+/**
+ * Fallback list shipped as one bundle (frontend/sites.json) next to index.html.
+ * Used when the API has no rows yet — e.g. a fresh serverless deploy whose
+ * database starts empty — so the dashboard still shows every monitored URL.
+ */
+async function loadBundledSites() {
+  try {
+    const res = await fetch('/sites.json', { headers: { accept: 'application/json' }, cache: 'no-cache' });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.websites ?? []).map((s) => ({
+      id: null,
+      name: s.name ?? s.url,
+      url: s.url,
+      enabled: s.enabled !== false,
+      status: 'UNKNOWN',
+      http_status: null,
+      response_time_ms: null,
+      last_checked_at: null,
+      last_error: null,
+      uptime_24h: null,
+      checks_24h: 0,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 async function loadOverview() {
-  const [w, inc] = await Promise.all([
-    api('/api/websites'),
-    api('/api/incidents?limit=15'),
-  ]);
-  state.websites = w.websites;
-  state.incidents = inc.incidents;
+  let websites = [];
+  let incidents = [];
+  try {
+    const [w, inc] = await Promise.all([
+      api('/api/websites'),
+      api('/api/incidents?limit=15'),
+    ]);
+    websites = w?.websites ?? [];
+    incidents = inc?.incidents ?? [];
+  } catch {
+    // API unreachable (static-only hosting) → fall back to the bundled list.
+  }
+  if (websites.length === 0) websites = await loadBundledSites();
+  state.websites = websites;
+  state.incidents = incidents;
+  // Counts must match what each filter pill shows: disabled sites are not
+  // operational / warning / outage, so status buckets only cover enabled sites.
   state.summary = state.websites.reduce(
     (acc, site) => {
       acc.total += 1;
-      if (site.enabled) acc.enabled += 1;
+      if (!site.enabled) {
+        acc.disabled += 1;
+        return acc;
+      }
+      acc.enabled += 1;
       const key = site.status.toLowerCase();
       acc[key] = (acc[key] ?? 0) + 1;
       return acc;
     },
-    { total: 0, enabled: 0, up: 0, warning: 0, down: 0, unknown: 0 }
+    { total: 0, enabled: 0, disabled: 0, up: 0, warning: 0, down: 0, unknown: 0 }
   );
 }
 
@@ -246,11 +289,10 @@ function websiteRow(site) {
       <td class="nowrap small muted">${checkLabel}</td>
       <td>
         <div class="actions">
-          <a class="btn btn-xs" href="#/w/${site.id}">View</a>
-          <button class="btn btn-xs" data-action="check" ${site.enabled ? '' : 'disabled'}>Check Now</button>
-          <button class="btn btn-xs" data-action="edit">Edit</button>
-          <button class="btn btn-xs" data-action="toggle">${site.enabled ? 'Disable' : 'Enable'}</button>
-          <button class="btn btn-xs btn-danger" data-action="delete">Delete</button>
+          ${site.id
+            ? `<a class="btn btn-xs" href="#/w/${site.id}">View</a>
+          <button class="btn btn-xs" data-action="check" ${site.enabled ? '' : 'disabled'}>Check Now</button>`
+            : '<span class="muted small">—</span>'}
         </div>
       </td>
     </tr>`;
@@ -263,7 +305,6 @@ function filterBarHtml() {
     </button>`;
 
   const s = state.summary;
-  const disabledCount = state.websites.filter((w) => !w.enabled).length;
 
   return `
     <div class="filter-bar">
@@ -276,7 +317,7 @@ function filterBarHtml() {
         ${pill('UP', 'UP', s.up)}
         ${pill('WARNING', 'Warning', s.warning)}
         ${pill('DOWN', 'Down', s.down)}
-        ${pill('DISABLED', 'Disabled', disabledCount)}
+        ${pill('DISABLED', 'Disabled', s.disabled)}
       </div>
     </div>`;
 }
@@ -575,12 +616,15 @@ function showAddResult(data) {
   const box = $('#add-result');
   box.hidden = false;
   const parts = [];
+  // 201 puts the per-URL detail at the top level; a 400 nests it under `details`.
+  const invalid = data.invalid ?? data.details?.invalid ?? [];
+  const duplicates = data.duplicates ?? data.details?.duplicates ?? [];
   if (data.added?.length) parts.push(`<div class="ok">✓ Added ${data.added.length}: ${data.added.map((w) => esc(w.url)).join(', ')}</div>`);
-  if (data.invalid?.length) {
-    parts.push(`<div class="bad">✗ Invalid URL — Please enter a valid HTTP or HTTPS URL:<ul>${data.invalid.map((i) => `<li>${esc(i.input)} — ${esc(i.error)}</li>`).join('')}</ul></div>`);
+  if (invalid.length) {
+    parts.push(`<div class="bad">✗ Invalid URL — Please enter a valid HTTP or HTTPS URL:<ul>${invalid.map((i) => `<li>${esc(i.input)} — ${esc(i.error)}</li>`).join('')}</ul></div>`);
   }
-  if (data.duplicates?.length) {
-    parts.push(`<div class="warn">↷ Duplicates skipped:<ul>${data.duplicates.map((d) => `<li>${esc(d.input)} — ${esc(d.reason)}</li>`).join('')}</ul></div>`);
+  if (duplicates.length) {
+    parts.push(`<div class="warn">↷ Duplicates skipped:<ul>${duplicates.map((d) => `<li>${esc(d.input)} — ${esc(d.reason)}</li>`).join('')}</ul></div>`);
   }
   if (data.error) parts.unshift(`<div class="bad">✗ ${esc(data.error)}</div>`);
   box.innerHTML = parts.join('');

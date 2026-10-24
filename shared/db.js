@@ -78,14 +78,27 @@ export function deleteWebsite(id) {
 }
 
 export function setWebsiteStatus(id, { status, http_status = null, response_time_ms = null, last_error = null, last_checked_at }) {
+  // `last_checked_at: null` clears the timestamp (the site was never checked for its
+  // current URL, so it is immediately due); omitting it stamps "now".
+  const clearCheckedAt = last_checked_at === null;
   getDb()
     .prepare(
       `UPDATE websites
-         SET status = ?, http_status = ?, response_time_ms = ?,
-             last_error = ?, last_checked_at = COALESCE(?, last_checked_at), updated_at = ?
+         SET status = ?, http_status = ?, response_time_ms = ?, last_error = ?,
+             last_checked_at = CASE WHEN ? = 1 THEN NULL ELSE COALESCE(?, last_checked_at) END,
+             updated_at = ?
        WHERE id = ?`
     )
-    .run(status, http_status, response_time_ms, last_error, last_checked_at ?? nowIso(), nowIso(), id);
+    .run(
+      status,
+      http_status ?? null,
+      response_time_ms ?? null,
+      last_error ?? null,
+      clearCheckedAt ? 1 : 0,
+      clearCheckedAt ? null : (last_checked_at ?? nowIso()),
+      nowIso(),
+      id
+    );
 }
 
 /** Enabled websites whose last check is older than intervalMs (or never checked). */
@@ -177,6 +190,50 @@ export function getStats(websiteId, sinceIso) {
     last,
     down,
   };
+}
+
+/**
+ * Batch stats for ALL websites in a single query.
+ * Returns { [websiteId]: { count, uptime, avg, min, max, last, down } }
+ */
+export function getStatsBatch(sinceIso) {
+  const rows = getDb()
+    .prepare(
+      `SELECT website_id, status, response_time_ms FROM checks
+        WHERE checked_at >= ?`
+    )
+    .all(sinceIso);
+
+  const map = {};
+  for (const r of rows) {
+    const wid = r.website_id;
+    if (!map[wid]) map[wid] = { count: 0, down: 0, sum: 0, samples: 0, min: null, max: null, last: null };
+    const s = map[wid];
+    s.count += 1;
+    if (r.status === 'DOWN') s.down += 1;
+    if (r.response_time_ms != null) {
+      const ms = Number(r.response_time_ms);
+      s.sum += ms;
+      s.samples += 1;
+      if (s.min == null || ms < s.min) s.min = ms;
+      if (s.max == null || ms > s.max) s.max = ms;
+      s.last = ms;
+    }
+  }
+  // Convert to final format
+  for (const wid of Object.keys(map)) {
+    const s = map[wid];
+    map[wid] = {
+      count: s.count,
+      uptime: (s.count - s.down) / s.count * 100,
+      avg: s.samples ? Math.round(s.sum / s.samples) : null,
+      min: s.min,
+      max: s.max,
+      last: s.last,
+      down: s.down,
+    };
+  }
+  return map;
 }
 
 /** Response-time series for chart: [{ t: ISO, ms, status }] */

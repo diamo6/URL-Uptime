@@ -25,13 +25,14 @@ import {
 import { parseBulkUrls, validateUrl, deriveName } from '../shared/urlUtils.js';
 import { runCheck } from '../shared/runCheck.js';
 import { UPTIME_WINDOWS, sinceIso } from '../shared/uptime.js';
+import { getStatsBatch } from '../shared/db.js';
 import { createRouter, sendJson, sendError, readJsonBody, serveStatic, logRequest } from './http.js';
 
 const FRONTEND_DIR = path.join(ROOT, 'frontend');
 const VALID_WINDOWS = Object.keys(UPTIME_WINDOWS);
 
-function withUptime24h(website) {
-  const stats = getStats(website.id, sinceIso('24h'));
+function withUptime24h(website, batchStats) {
+  const stats = batchStats[website.id] || { count: 0, uptime: null, avg: null, min: null, max: null, last: null, down: 0 };
   return {
     ...website,
     enabled: Boolean(website.enabled),
@@ -77,7 +78,9 @@ export function createApp() {
   /* ---------------- Websites list ---------------- */
 
   router.add('GET', '/api/websites', (req, res) => {
-    sendJson(res, 200, { websites: listWebsites().map(withUptime24h) });
+    const batchStats = getStatsBatch(sinceIso('24h'));
+    const websites = listWebsites().map(w => withUptime24h(w, batchStats));
+    sendJson(res, 200, { websites });
   });
 
   /* ---------------- Add website(s) — single or bulk paste ---------------- */
@@ -111,7 +114,9 @@ export function createApp() {
     for (const item of parsed.valid) {
       const name = single ? body.name.trim() : deriveName(item.url);
       try {
-        added.push(withUptime24h(createWebsite({ name, url: item.url, enabled })));
+        const newSite = createWebsite({ name, url: item.url, enabled });
+        const s24 = getStats(newSite.id, sinceIso('24h'));
+        added.push(withUptime24h(newSite, { [newSite.id]: s24 }));
       } catch (err) {
         if (String(err.message).includes('UNIQUE')) {
           parsed.duplicates.push({ input: item.input, reason: 'Already monitored.' });
@@ -141,7 +146,7 @@ export function createApp() {
     const since = sinceIso(window);
     const s24 = getStats(website.id, since);
     sendJson(res, 200, {
-      website: withUptime24h(website),
+      website: withUptime24h(website, { [website.id]: s24 }),
       window,
       uptime,
       response: {
@@ -197,7 +202,7 @@ export function createApp() {
         last_checked_at: null,
       });
     }
-    sendJson(res, 200, { website: withUptime24h(getWebsite(website.id)) ?? updated });
+    sendJson(res, 200, { website: withUptime24h(getWebsite(website.id), {}) ?? updated });
   });
 
   /* ---------------- Delete website ---------------- */
@@ -217,7 +222,7 @@ export function createApp() {
     if (!website) return sendError(res, 404, 'Website not found.');
     const outcome = await runCheck(website, { checkedBy: 'manual' });
     sendJson(res, 200, {
-      website: withUptime24h(outcome.website),
+      website: withUptime24h(outcome.website, { [outcome.website.id]: { count: 0, uptime: null, avg: null, min: null, max: null, last: null, down: 0 } }),
       result: outcome.result,
       transition: outcome.transition,
     });
@@ -230,8 +235,9 @@ export function createApp() {
     if (!website) return sendError(res, 404, 'Website not found.');
     const window = parseWindow(query);
     const since = sinceIso(window);
+    const batchStats = getStatsBatch(since);
     sendJson(res, 200, {
-      website: withUptime24h(website),
+      website: withUptime24h(website, batchStats),
       window,
       stats: getStats(website.id, since),
       series: responseSeries(website.id, since),

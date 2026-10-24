@@ -109,8 +109,9 @@ async function tick() {
 export function startWorker() {
   log.info(`worker starting (instance ${INSTANCE_ID.slice(0, 8)})`);
   log.info(`interval: ${config.checkIntervalMs / 1000}s | timeout: ${config.requestTimeoutMs / 1000}s | tick: ${TICK_MS / 1000}s`);
-  // First pass immediately (covers never-checked websites after restart).
-  tick();
+  // First pass delayed (covers never-checked websites after restart) —
+  // delay initial tick to avoid blocking the API startup with concurrent fetches.
+  setTimeout(() => tick(), 3000);
   const timer = setInterval(tick, TICK_MS);
   const shutdown = (signal) => {
     log.info(`${signal} received — worker stopping`);
